@@ -2011,6 +2011,18 @@ class WSV2Protocol(XtoolProtocol):
                 )
                 continue
             _LOGGER.debug("V2 /v1/peripheral/param type=%s raw: %s", ptype, p)
+            if ptype == "fill_light" and isinstance(p, list):
+                # F1 Ultra V2 firmware answers with a channel list,
+                # ``[{"idx": 1, "value": N}]`` (issue #27).
+                p = next(
+                    (
+                        {"value": ch["value"]}
+                        for ch in p
+                        if isinstance(ch, dict)
+                        and isinstance(ch.get("value"), (int, float))
+                    ),
+                    None,
+                )
             if not isinstance(p, dict):
                 continue
             self._apply_peripheral_param(ptype, p, state)

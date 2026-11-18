@@ -66,6 +66,10 @@ XTOOL_F1_ULTRA_WSV2 = XtoolDeviceModel(
     has_camera_exposure=True,
     has_fill_light=True,
     fill_light_device_min=20,  # Studio F1Ultra bundle Q7 transform
+    # GS002 firmware 40.52.018 answers the fillLightBright* config
+    # writes with ``code 1: failed``; set_bri on idx 0 drives the LED
+    # (issue #27). GET reports the channel as idx 1.
+    fill_light_peripheral_idx=0,
     has_fire_record=True,
     has_cover_sensor=True,  # gap peripheral works → cover entity
     # Statistics endpoint returns session counts only (no time-based
