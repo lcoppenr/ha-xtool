@@ -1252,6 +1252,40 @@ class WSV2FillLight(_WSV2FillLightBase):
         self.async_write_ha_state()
 
 
+class WSV2FillLightPeripheral(WSV2FillLight):
+    """Single fill light driven through the peripheral route.
+
+    For models with ``fill_light_peripheral_idx`` set: the firmware
+    rejects the ``fillLightBright*`` config keys, so on, off and
+    brightness go to ``PUT /v1/peripheral/param?type=fill_light`` as
+    ``{action: "set_bri", idx, value}`` (issue #27).
+    """
+
+    async def _set_bri(self, device_value: int) -> None:
+        await self.coordinator.protocol.set_peripheral(
+            "fill_light",
+            "set_bri",
+            idx=self.coordinator.model.fill_light_peripheral_idx,
+            value=device_value,
+        )
+        if self.coordinator.data is not None:
+            self.coordinator.data.fill_light_a = device_value
+            self.coordinator.data.fill_light_b = device_value
+        self.async_write_ha_state()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        ha_brightness = int(kwargs.get(ATTR_BRIGHTNESS, BRIGHTNESS_HA_MAX))
+        await self._set_bri(
+            _fill_light_ha_to_device(
+                ha_brightness,
+                self.coordinator.model.fill_light_device_min,
+            )
+        )
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._set_bri(0)
+
+
 class WSV2FillLightFront(_WSV2FillLightBase):
     """Front fill-light channel — F-family V2 firmware."""
 
@@ -1998,6 +2032,8 @@ def build_wsv2_lights(coordinator: XtoolCoordinator) -> list[LightEntity]:
             WSV2FillLightBack(coordinator),
         ]
     if model.has_fill_light:
+        if model.fill_light_peripheral_idx is not None:
+            return [WSV2FillLightPeripheral(coordinator)]
         return [WSV2FillLight(coordinator)]
     return []
 

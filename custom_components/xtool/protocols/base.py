@@ -134,6 +134,12 @@ class XtoolDeviceModel:
     # scales HA brightness accordingly. Defaults to 0 (linear
     # passthrough) for models whose bundle uses ``device/255*100``.
     fill_light_device_min: int = 0
+    # Single-channel models whose firmware rejects the
+    # ``fillLightBright*`` config keys drive the fill light through
+    # ``PUT /v1/peripheral/param?type=fill_light`` with
+    # ``{action: "set_bri", idx: <this>, value: 0-255}`` instead.
+    # ``None`` (default) keeps the config-key write.
+    fill_light_peripheral_idx: int | None = None
     has_device_sleep: bool = False  # ``autoSleepEnable`` config bool
     has_move_stop: bool = False
     has_beeper: bool = False
