@@ -257,7 +257,9 @@ def _encode_frame(
     return bytes(header) + payload
 
 
-def _decode_frames(buffer: bytes) -> tuple[list[tuple[int, bytes]], bytes]:
+def _decode_frames(
+    buffer: bytes, verify_crc: bool = True,
+) -> tuple[list[tuple[int, bytes]], bytes]:
     """Extract complete frames from ``buffer``.
 
     Returns ``(frames, remainder)`` where each frame is
@@ -265,6 +267,10 @@ def _decode_frames(buffer: bytes) -> tuple[list[tuple[int, bytes]], bytes]:
     tail (used by callers that aggregate fragmented WS messages).
     Frames with a bad header or payload CRC are silently skipped — the
     parser advances one byte and re-syncs on the next ``0xBA 0xBE``.
+    ``verify_crc=False`` skips both CRC checks; the camera file stream
+    uses it because the F1 Ultra's FILE_DATA frames fail the check while
+    their data is good, so every frame was dropped and the snapshot
+    never completed.
     """
     frames: list[tuple[int, bytes]] = []
     pos = 0
@@ -283,13 +289,13 @@ def _decode_frames(buffer: bytes) -> tuple[list[tuple[int, bytes]], bytes]:
             break
         header = buffer[pos:pos + 8]
         header_crc = (buffer[pos + 8] << 8) | buffer[pos + 9]
-        if _crc16(header) != header_crc:
+        if verify_crc and _crc16(header) != header_crc:
             pos += 1
             continue
         crc_disabled = bool(buffer[pos + 5] & 0x80)
         protocol_type = buffer[pos + 5] & 0x7F
         payload = buffer[pos + 10:pos + total]
-        if not crc_disabled:
+        if verify_crc and not crc_disabled:
             payload_crc = (buffer[pos + 6] << 8) | buffer[pos + 7]
             if _crc16(payload) != payload_crc:
                 pos += 1
@@ -2620,7 +2626,7 @@ class WSV2Protocol(XtoolProtocol):
 
                 if msg.type == aiohttp.WSMsgType.BINARY:
                     scan.extend(msg.data)
-                    frames, scan_rem = _decode_frames(bytes(scan))
+                    frames, scan_rem = _decode_frames(bytes(scan), verify_crc=False)
                     scan = bytearray(scan_rem)
                     for protocol_type, payload in frames:
                         if protocol_type != WSV2_PROTOCOL_FILE_TRANSFER:
