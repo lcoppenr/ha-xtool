@@ -1759,8 +1759,10 @@ class WSV2Protocol(XtoolProtocol):
                 if isinstance(v, (int, float)):
                     self._latest["display_brightness"] = int(v)
             elif ptype == "gyro":
+                # F1 Ultra firmware 40.52.018 names the axes gyro_x/y/z
+                # (beside acc_*, pitch, roll, yaw); older replies used x/y/z.
                 for axis in ("x", "y", "z"):
-                    v = info.get(axis)
+                    v = info.get(f"gyro_{axis}", info.get(axis))
                     if isinstance(v, (int, float)):
                         self._latest[f"gyro_{axis}"] = float(v)
             elif ptype == "laser_head":
@@ -2276,8 +2278,10 @@ class WSV2Protocol(XtoolProtocol):
             if isinstance(v, (int, float)):
                 state.water_flow = float(v)
         elif ptype == "gyro":
+            # F1 Ultra firmware 40.52.018 names the axes gyro_x/y/z
+            # (beside acc_*, pitch, roll, yaw); older replies used x/y/z.
             for axis in ("x", "y", "z"):
-                v = p.get(axis)
+                v = p.get(f"gyro_{axis}", p.get(axis))
                 if isinstance(v, (int, float)):
                     setattr(state, f"gyro_{axis}", float(v))
         elif ptype == "laser_head":
