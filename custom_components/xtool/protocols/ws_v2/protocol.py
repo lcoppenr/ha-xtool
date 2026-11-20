@@ -1079,7 +1079,27 @@ class WSV2Protocol(XtoolProtocol):
         )
         return image
 
+    def set_camera_snapshot_size(self, size: tuple[int, int] | None) -> None:
+        """Size for the next ``main`` snapshots; ``None`` is full size."""
+        self._camera_snapshot_size = size
+
     async def _camera_snap(self, camera_name: str) -> bytes | None:
+        size = getattr(self, "_camera_snapshot_size", None)
+        if size is not None and camera_name == "main":
+            # The size applies to the next snapshot only, so it is sent
+            # before every one. On failure the snapshot is full size.
+            try:
+                await self.request(
+                    "/v1/camera/image",
+                    "GET",
+                    data={"width": str(size[0]), "height": str(size[1])},
+                    timeout=5.0,
+                )
+            except Exception as err:
+                _LOGGER.debug(
+                    "V2 camera_snap %s: size %sx%s not set: %s",
+                    camera_name, size[0], size[1], err,
+                )
         try:
             snap = await self.request(
                 self.PATH_CAMERA_SNAP,

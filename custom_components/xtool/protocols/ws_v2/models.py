@@ -70,6 +70,9 @@ XTOOL_F1_ULTRA_WSV2 = XtoolDeviceModel(
     # writes with ``code 1: failed``; set_bri on idx 0 drives the LED
     # (issue #27). GET reports the channel as idx 1.
     fill_light_peripheral_idx=0,
+    # GS002 firmware 40.52.018: only exact halvings of 4656x3496 and the
+    # sensor's 2592x1944 mode come out clean; other sizes are streaked.
+    camera_snapshot_sizes=((4656, 3496), (2592, 1944), (2328, 1748), (1164, 874)),
     has_fire_record=True,
     has_cover_sensor=True,  # gap peripheral works → cover entity
     # Statistics endpoint returns session counts only (no time-based

@@ -683,6 +683,15 @@
           "off": "Aus"
         }
       },
+      "camera_resolution": {
+        "name": "Kameraauflösung",
+        "state": {
+          "full": "4656×3496 (voll)",
+          "5mp": "2592×1944",
+          "half": "2328×1748 (½)",
+          "quarter": "1164×874 (¼)"
+        }
+      },
       "flame_alarm_mode": {
         "name": "Feueralarm-Modus",
         "state": {

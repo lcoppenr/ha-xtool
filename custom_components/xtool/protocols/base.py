@@ -140,6 +140,11 @@ class XtoolDeviceModel:
     # ``{action: "set_bri", idx: <this>, value: 0-255}`` instead.
     # ``None`` (default) keeps the config-key write.
     fill_light_peripheral_idx: int | None = None
+    # Snapshot sizes the ``main`` camera produces cleanly, largest
+    # (full) first. Non-empty adds a "Camera resolution" select; a
+    # smaller size is requested with ``GET /v1/camera/image``
+    # ``{width, height}`` before each ``/v1/camera/snap``.
+    camera_snapshot_sizes: tuple[tuple[int, int], ...] = ()
     has_device_sleep: bool = False  # ``autoSleepEnable`` config bool
     has_move_stop: bool = False
     has_beeper: bool = False

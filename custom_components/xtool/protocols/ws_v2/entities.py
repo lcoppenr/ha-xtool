@@ -2196,6 +2196,46 @@ def build_wsv2_numbers(coordinator: XtoolCoordinator) -> list[NumberEntity]:
     return entities
 
 
+class WSV2CameraResolutionSelect(XtoolEntity, SelectEntity, RestoreEntity):
+    """Snapshot size of the ``main`` camera (``model.camera_snapshot_sizes``).
+
+    The first size is full; any other is requested before each snapshot.
+    The choice is restored after a restart; the default is full size.
+    """
+
+    _attr_translation_key = "camera_resolution"
+    _attr_icon = "mdi:image-size-select-large"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    # Option keys in size order: full, the sensor's 5 MP mode, half, quarter.
+    _KEYS = ("full", "5mp", "half", "quarter")
+
+    def __init__(self, coordinator: XtoolCoordinator) -> None:
+        super().__init__(coordinator)
+        self._set_unique_id("camera_resolution")
+        sizes = coordinator.model.camera_snapshot_sizes
+        self._sizes = dict(zip(self._KEYS, sizes))
+        self._attr_options = list(self._sizes)
+        self._attr_current_option = self._attr_options[0]
+
+    def _apply(self) -> None:
+        key = self._attr_current_option
+        size = None if key == self._attr_options[0] else self._sizes[key]
+        self.coordinator.protocol.set_camera_snapshot_size(size)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is not None and last.state in self._attr_options:
+            self._attr_current_option = last.state
+        self._apply()
+
+    async def async_select_option(self, option: str) -> None:
+        self._attr_current_option = option
+        self._apply()
+        self.async_write_ha_state()
+
+
 def build_wsv2_selects(coordinator: XtoolCoordinator) -> list[SelectEntity]:
     # ``WSV2FlameAlarmSelect`` removed in v2.5.4 — firmware types
     # ``flameAlarm`` strictly as boolean, the writable switch already
@@ -2204,6 +2244,11 @@ def build_wsv2_selects(coordinator: XtoolCoordinator) -> list[SelectEntity]:
     # migrated to the Purifier accessory child device — the entity
     # surfaces only when an AP2 / AP2-Large / AP2-Max is currently
     # paired.
+    if (
+        coordinator.model.camera_snapshot_sizes
+        and "main" in coordinator.model.camera_names
+    ):
+        return [WSV2CameraResolutionSelect(coordinator)]
     return []
 
 
