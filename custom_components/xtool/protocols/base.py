@@ -145,6 +145,13 @@ class XtoolDeviceModel:
     # smaller size is requested with ``GET /v1/camera/image``
     # ``{width, height}`` before each ``/v1/camera/snap``.
     camera_snapshot_sizes: tuple[tuple[int, int], ...] = ()
+    # Lifetime work / standby time (``worktime`` / ``standbyTime``, seconds)
+    # and Wi-Fi RSSI (``wlan.rssi``) read from ``/v1/device/machineInfo``
+    # on the slow poll, for models whose ``/statistics`` lacks the times.
+    has_machine_info_counters: bool = False
+    # Accelerometer and attitude (``acc_x/y/z``, ``pitch``, ``roll``,
+    # ``yaw``) from the same ``gyro`` reply as ``gyro_x/y/z``.
+    has_gyro_extras: bool = False
     has_device_sleep: bool = False  # ``autoSleepEnable`` config bool
     has_move_stop: bool = False
     has_beeper: bool = False
@@ -328,6 +335,13 @@ class XtoolDeviceState:
     gyro_x: float | None = None
     gyro_y: float | None = None
     gyro_z: float | None = None
+    acc_x: float | None = None
+    acc_y: float | None = None
+    acc_z: float | None = None
+    pitch: float | None = None
+    roll: float | None = None
+    yaw: float | None = None
+    wifi_rssi: int | None = None
     # D-series
     redcross_mode: int | None = None  # M97 S0=cross, S1=lowlight
     work_area_left: int = 0

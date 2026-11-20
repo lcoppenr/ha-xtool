@@ -51,6 +51,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.const import (
     EntityCategory,
     PERCENTAGE,
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     UnitOfLength,
     UnitOfTemperature,
     UnitOfTime,
@@ -328,6 +329,93 @@ _GATED_SENSOR_DESCRIPTIONS: tuple[
             value_fn=lambda state, _: state.gyro_z,
         ),
         "has_gyro",
+    ),
+    (
+        XtoolSensorEntityDescription(
+            key="acc_x",
+            translation_key="acc_x",
+            icon="mdi:axis-x-arrow",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda state, _: state.acc_x,
+        ),
+        "has_gyro_extras",
+    ),
+    (
+        XtoolSensorEntityDescription(
+            key="acc_y",
+            translation_key="acc_y",
+            icon="mdi:axis-y-arrow",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda state, _: state.acc_y,
+        ),
+        "has_gyro_extras",
+    ),
+    (
+        XtoolSensorEntityDescription(
+            key="acc_z",
+            translation_key="acc_z",
+            icon="mdi:axis-z-arrow",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda state, _: state.acc_z,
+        ),
+        "has_gyro_extras",
+    ),
+    (
+        XtoolSensorEntityDescription(
+            key="pitch",
+            translation_key="pitch",
+            icon="mdi:angle-acute",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda state, _: state.pitch,
+        ),
+        "has_gyro_extras",
+    ),
+    (
+        XtoolSensorEntityDescription(
+            key="roll",
+            translation_key="roll",
+            icon="mdi:rotate-left",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda state, _: state.roll,
+        ),
+        "has_gyro_extras",
+    ),
+    (
+        XtoolSensorEntityDescription(
+            key="yaw",
+            translation_key="yaw",
+            icon="mdi:rotate-3d-variant",
+            entity_category=EntityCategory.DIAGNOSTIC,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda state, _: state.yaw,
+        ),
+        "has_gyro_extras",
+    ),
+    (_WORKING_TIME_DESCRIPTION, "has_machine_info_counters"),
+    (_STANDBY_TIME_DESCRIPTION, "has_machine_info_counters"),
+    (
+        XtoolSensorEntityDescription(
+            key="wifi_rssi",
+            translation_key="wifi_signal",
+            icon="mdi:wifi",
+            device_class=SensorDeviceClass.SIGNAL_STRENGTH,
+            native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            value_fn=lambda state, _: state.wifi_rssi,
+        ),
+        "has_machine_info_counters",
     ),
     (_LAST_JOB_TIME_DESCRIPTION, "has_runtime_stats"),
     (_WORKING_TIME_DESCRIPTION, "has_runtime_stats"),
@@ -2200,7 +2288,8 @@ class WSV2CameraResolutionSelect(XtoolEntity, SelectEntity, RestoreEntity):
     """Snapshot size of the ``main`` camera (``model.camera_snapshot_sizes``).
 
     The first size is full; any other is requested before each snapshot.
-    The choice is restored after a restart; the default is full size.
+    The choice is restored after a restart; with none saved it is the
+    smallest size (quarter on the F1 Ultra), the fastest to fetch.
     """
 
     _attr_translation_key = "camera_resolution"
@@ -2216,7 +2305,7 @@ class WSV2CameraResolutionSelect(XtoolEntity, SelectEntity, RestoreEntity):
         sizes = coordinator.model.camera_snapshot_sizes
         self._sizes = dict(zip(self._KEYS, sizes))
         self._attr_options = list(self._sizes)
-        self._attr_current_option = self._attr_options[0]
+        self._attr_current_option = self._attr_options[-1]
 
     def _apply(self) -> None:
         key = self._attr_current_option

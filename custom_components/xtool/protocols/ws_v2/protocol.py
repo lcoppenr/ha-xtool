@@ -304,6 +304,29 @@ def _decode_frames(
         pos += total
     return frames, buffer[pos:]
 
+# Accelerometer / attitude keys in the ``gyro`` peripheral reply
+# (F1 Ultra firmware 40.52.018), beside ``gyro_x/y/z``.
+_GYRO_EXTRA_KEYS = ("acc_x", "acc_y", "acc_z", "pitch", "roll", "yaw")
+
+
+def _machine_info_counters(info: dict[str, Any]) -> dict[str, int]:
+    """``worktime`` / ``standbyTime`` (seconds) and ``wlan.rssi`` (dBm,
+    sent as a string) from a ``/v1/device/machineInfo`` reply."""
+    out: dict[str, int] = {}
+    for src, dst in (("worktime", "working_seconds"),
+                     ("standbyTime", "standby_seconds")):
+        v = info.get(src)
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            out[dst] = int(v)
+    wlan = info.get("wlan")
+    if isinstance(wlan, dict):
+        try:
+            out["wifi_rssi"] = int(str(wlan.get("rssi")).strip())
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
 # Mapping of V2 work-mode strings to the integration's normalised status enum.
 # Sources: xTool Studio bundle ``/work/mode`` push handler + the
 # ``/v1/device/runtime-infos`` `curMode.mode` response field.
@@ -512,6 +535,8 @@ class WSV2Protocol(XtoolProtocol):
         "ink_white", "ink_yellow", "clean_water", "waste_water",
         "heater_connected", "drawer_open", "cpu_fan_running",
         "gyro_x", "gyro_y", "gyro_z",
+        "acc_x", "acc_y", "acc_z", "pitch", "roll", "yaw",
+        "working_seconds", "standby_seconds", "wifi_rssi",
         "position_x", "position_y", "position_z",
         "last_distance_mm", "display_brightness",
         "fill_light_a", "fill_light_b",
@@ -1785,6 +1810,10 @@ class WSV2Protocol(XtoolProtocol):
                     v = info.get(f"gyro_{axis}", info.get(axis))
                     if isinstance(v, (int, float)):
                         self._latest[f"gyro_{axis}"] = float(v)
+                for key in _GYRO_EXTRA_KEYS:
+                    v = info.get(key)
+                    if isinstance(v, (int, float)):
+                        self._latest[key] = float(v)
             elif ptype == "laser_head":
                 for src, dst in (("x", "position_x"), ("y", "position_y"),
                                  ("z", "position_z")):
@@ -2203,6 +2232,16 @@ class WSV2Protocol(XtoolProtocol):
                 if isinstance(wt, (int, float)):
                     state.task_time = int(wt)
 
+        # 5b. Lifetime times + Wi-Fi from machineInfo, slow cadence.
+        if slow and getattr(self._model, "has_machine_info_counters", False):
+            try:
+                mi = await self.request(self.PATH_DEVICE_INFO, "GET")
+            except Exception as err:
+                _LOGGER.debug("V2 machineInfo counters failed: %s", err)
+                mi = None
+            if isinstance(mi, dict):
+                self._latest.update(_machine_info_counters(mi))
+
         # 6. Alarms — alarm presence, slow cadence. Skip once cached as
         # unsupported (F1 / GS005 / HJ003 / M1Ultra / P2S / P3 / DT001
         # don't expose ``/v1/device/alarms`` — alarm transitions still
@@ -2226,7 +2265,12 @@ class WSV2Protocol(XtoolProtocol):
             except Exception:
                 alarms = None
             if isinstance(alarms, dict):
-                lst = alarms.get("alarms") or alarms.get("data") or []
+                # F1 Ultra firmware 40.52.018 answers
+                # ``{alarm: null, desc: …}`` — ``alarm`` set when active.
+                lst = (
+                    alarms.get("alarms") or alarms.get("data")
+                    or alarms.get("alarm") or []
+                )
                 self._latest["alarm_present"] = bool(lst)
             elif isinstance(alarms, list):
                 self._latest["alarm_present"] = bool(alarms)
@@ -2304,6 +2348,10 @@ class WSV2Protocol(XtoolProtocol):
                 v = p.get(f"gyro_{axis}", p.get(axis))
                 if isinstance(v, (int, float)):
                     setattr(state, f"gyro_{axis}", float(v))
+            for key in _GYRO_EXTRA_KEYS:
+                v = p.get(key)
+                if isinstance(v, (int, float)):
+                    setattr(state, key, float(v))
         elif ptype == "laser_head":
             for src, dst in (("x", "position_x"), ("y", "position_y"),
                              ("z", "position_z")):

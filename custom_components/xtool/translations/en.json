@@ -301,6 +301,27 @@
       "gyro_y": {
         "name": "Gyro Y"
       },
+      "acc_x": {
+        "name": "Acceleration X"
+      },
+      "acc_y": {
+        "name": "Acceleration Y"
+      },
+      "acc_z": {
+        "name": "Acceleration Z"
+      },
+      "pitch": {
+        "name": "Pitch"
+      },
+      "roll": {
+        "name": "Roll"
+      },
+      "yaw": {
+        "name": "Yaw"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
+      },
       "gyro_z": {
         "name": "Gyro Z"
       },

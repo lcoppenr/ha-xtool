@@ -73,6 +73,12 @@ XTOOL_F1_ULTRA_WSV2 = XtoolDeviceModel(
     # GS002 firmware 40.52.018: only exact halvings of 4656x3496 and the
     # sensor's 2592x1944 mode come out clean; other sizes are streaked.
     camera_snapshot_sizes=((4656, 3496), (2592, 1944), (2328, 1748), (1164, 874)),
+    # autoSleepEnable answers on firmware 40.52.018 (probe 2026-11-20).
+    has_device_sleep=True,
+    # /statistics has session counts only; machineInfo carries
+    # worktime / standbyTime and wlan.rssi.
+    has_machine_info_counters=True,
+    has_gyro_extras=True,
     has_fire_record=True,
     has_cover_sensor=True,  # gap peripheral works → cover entity
     # Statistics endpoint returns session counts only (no time-based
